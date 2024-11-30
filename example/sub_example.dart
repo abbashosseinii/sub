@@ -18,7 +18,8 @@ This is the second subtitle.
   await file.writeAsString(srtContent);
 
   // Parse the SRT file using SubtitleParser
-  final List<SubModel> subtitles = await SubParser.parseSrtFile('test_data.srt');
+  final List<SubModel> subtitles =
+      await SubParser.parseSrtFile('test_data.srt');
 
   // Print the parsed subtitles
   for (var subtitle in subtitles) {

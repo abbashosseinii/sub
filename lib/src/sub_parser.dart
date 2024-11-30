@@ -89,8 +89,8 @@ class SubParser {
 
   /// Parses a time string in the format `HH:MM:SS,MMM` into a [Duration] object.
   ///
-  /// The time string represents hours, minutes, seconds, and milliseconds 
-  /// separated by colons and a comma, respectively. This method converts the 
+  /// The time string represents hours, minutes, seconds, and milliseconds
+  /// separated by colons and a comma, respectively. This method converts the
   /// string into a [Duration] by extracting and parsing each component.
   ///
   /// Example input: "00:00:01,000"
