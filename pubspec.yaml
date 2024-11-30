@@ -2,7 +2,7 @@ name: sub
 description: A package to parse subtitle files like SRT and VTT.
 version: 1.0.0
 license: MIT
-# repository: https://github.com/my_org/my_repo
+repository: https://github.com/abbashosseinii/sub
 
 environment:
   sdk: ^3.5.3
