@@ -22,11 +22,17 @@ class SubParser {
   /// information in the format `HH:MM:SS,MMM --> HH:MM:SS,MMM`, and the
   /// third line is the subtitle text.
   ///
-  /// The file is read in a streaming fashion, and the method returns a
-  /// [Future] that completes when the entire file has been parsed. The
-  /// [Future] resolves to a [List] of [SubModel]s, which can then be used
-  /// for further processing.
+  /// The file is read in a streaming fashion to avoid loading large files
+  /// into memory all at once, which improves performance for larger subtitle files.
+  /// The method returns a [Future] that completes when the entire file has been parsed.
+  /// The [Future] resolves to a [List] of [SubModel]s, which can then be used
+  /// for further processing, such as displaying the subtitles.
   ///
+  /// Example usage:
+  ///
+  /// ```dart
+  /// List<SubModel> subtitles = await SubParser.parseSrtFile('path_to_subtitle.srt');
+  /// ```
   static Future<List<SubModel>> parseSrtFile(String filePath) async {
     final File file = File(filePath);
     final Stream<List<int>> inputStream = file.openRead();
@@ -45,70 +51,77 @@ class SubParser {
           if (line.isEmpty) continue;
 
           if (id == 0 || line.contains(RegExp(r'^\d+$'))) {
-            // New subtitle block, save previous if exists
+            // New subtitle block, save previous one if exists
             if (id != 0 && subtitleText.isNotEmpty) {
               subtitles.add(SubModel(
-                  id: id,
-                  start: startTime!,
-                  end: endTime!,
-                  text: subtitleText
-                      .trim() // Use trim to remove trailing newlines
-                  ));
-              subtitleText = ''; // Reset for new subtitle
+                id: id,
+                start: startTime!,
+                end: endTime!,
+                text: subtitleText.trim(),
+              ));
             }
+
+            // Initialize new subtitle block
             id = int.parse(line);
-          } else if (line.contains(RegExp(r'-->'))) {
-            // Extract start and end times
-            final times = line.split(' --> ');
-            startTime = _parseTime(times[0]);
-            endTime = _parseTime(times[1]);
-          } else {
-            // Collect subtitle text
-            subtitleText += '$line\n';
+            subtitleText = '';
+            continue;
           }
+
+          if (line.contains(RegExp(r'-->'))) {
+            // Extract start and end times from the subtitle line
+            final RegExp timePattern = RegExp(
+                r'(\d{2}):(\d{2}):(\d{2}),(\d{3}) --> (\d{2}):(\d{2}):(\d{2}),(\d{3})');
+            final match = timePattern.firstMatch(line);
+            if (match != null) {
+              final startHours = int.parse(match.group(1)!);
+              final startMinutes = int.parse(match.group(2)!);
+              final startSeconds = int.parse(match.group(3)!);
+              final startMilliseconds = int.parse(match.group(4)!);
+
+              final endHours = int.parse(match.group(5)!);
+              final endMinutes = int.parse(match.group(6)!);
+              final endSeconds = int.parse(match.group(7)!);
+              final endMilliseconds = int.parse(match.group(8)!);
+
+              startTime = Duration(
+                hours: startHours,
+                minutes: startMinutes,
+                seconds: startSeconds,
+                milliseconds: startMilliseconds,
+              );
+              endTime = Duration(
+                hours: endHours,
+                minutes: endMinutes,
+                seconds: endSeconds,
+                milliseconds: endMilliseconds,
+              );
+            }
+            continue;
+          }
+
+          // Collect subtitle text
+          subtitleText += line + '\n';
         }
       },
       onDone: () {
-        // Handle the last subtitle
-        if (id != 0 && subtitleText.isNotEmpty) {
+        if (subtitleText.isNotEmpty) {
+          // Add the last subtitle block to the list
           subtitles.add(SubModel(
             id: id,
             start: startTime!,
             end: endTime!,
-            text: subtitleText.trim(), // Trim the last subtitle text
+            text: subtitleText.trim(),
           ));
         }
         completer.complete();
       },
+      onError: (error) {
+        completer.completeError(error);
+      },
     );
 
-    // Return the result once parsing is done
+    // Wait for the stream to complete and return the list of subtitles
     await completer.future;
     return subtitles;
-  }
-
-  /// Parses a time string in the format `HH:MM:SS,MMM` into a [Duration] object.
-  ///
-  /// The time string represents hours, minutes, seconds, and milliseconds
-  /// separated by colons and a comma, respectively. This method converts the
-  /// string into a [Duration] by extracting and parsing each component.
-  ///
-  /// Example input: "00:00:01,000"
-  ///
-  /// Returns a [Duration] representing the parsed time.
-  static Duration _parseTime(String timeString) {
-    final parts = timeString.split(':');
-    final hour = int.parse(parts[0]);
-    final minute = int.parse(parts[1]);
-    final secondAndMs = parts[2].split(',');
-    final second = int.parse(secondAndMs[0]);
-    final millisecond = int.parse(secondAndMs[1]);
-
-    return Duration(
-      hours: hour,
-      minutes: minute,
-      seconds: second,
-      milliseconds: millisecond,
-    );
   }
 }
