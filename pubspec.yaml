@@ -1,5 +1,6 @@
 name: sub
-description: A package to parse subtitle files like SRT and VTT.
+description: |
+  A lightweight Dart library to parse, extract, and manipulate subtitle files. Perfect for media apps, video players, and subtitle management tools.
 version: 1.0.0
 license: MIT
 repository: https://github.com/abbashosseinii/sub
