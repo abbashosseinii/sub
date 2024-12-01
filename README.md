@@ -1,16 +1,14 @@
-Here's an example of a `README.md` file for your package named **`sub`**, which includes the **`SubModel`** and **`SubParser`**:
-
----
-
 # Sub
 
-`sub` is a Dart package designed for parsing subtitle files like SRT and VTT. It provides an easy way to parse subtitle files into a structured model, **`SubModel`**, and includes a parser, **`SubParser`**, for reading and interpreting subtitle data.
+`sub` is a Dart package designed for parsing subtitle files like SRT and VTT. It provides an easy way to parse subtitle files into a structured model, **`SubModel`**, and includes a parser, **`Sub`**, for reading and interpreting subtitle data.
 
 ## Features
 
 - Parse subtitle files (SRT, VTT, etc.) into a structured `SubModel`.
 - Support for time-based subtitles, with `start` and `end` timestamps.
 - Easily extract subtitle text for use in your application.
+- Enhanced support for non-Latin scripts like Persian.
+- Optimized memory usage for large subtitle files by using streaming parsing.
 
 ## Installation
 
@@ -18,7 +16,7 @@ Add `sub` as a dependency in your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  sub: ^1.0.0
+  sub: ^1.1.0
 ```
 
 Then run:
@@ -62,9 +60,9 @@ class SubModel {
 }
 ```
 
-### SubParser
+### Sub
 
-The `SubParser` is responsible for parsing subtitle files and converting them into a list of `SubModel` objects.
+The `Sub` class is responsible for parsing subtitle files and converting them into a list of `SubModel` objects.
 
 #### Example of Parsing an SRT File
 
@@ -78,14 +76,14 @@ void main() async {
 
   try {
     // Parse the subtitle file
-    List<SubModel> subtitles = await SubParser.parse(filePath);
+    List<SubModel> subtitles = await Sub.parse(filePath);
 
     // Print the parsed subtitles
     for (var subtitle in subtitles) {
       print('ID: ${subtitle.id}');
       print('Start: ${subtitle.start}');
       print('End: ${subtitle.end}');
-      print('Text: ${subtitle.text}\n');
+      print('Text: ${subtitle.text}');
     }
   } catch (e) {
     print('Error parsing subtitle file: $e');
@@ -93,28 +91,6 @@ void main() async {
 }
 ```
 
-#### Parsing Logic
-
-- The `SubParser.parse` method takes the file path of the subtitle file (SRT format) and returns a list of `SubModel` objects.
-- The parser extracts each subtitle's ID, start time, end time, and text.
-- The `start` and `end` times are parsed into `Duration` objects, which can be used to synchronize subtitles with media.
-
-### Supported Subtitle Formats
-
-- **SRT (SubRip Subtitle)**: The most common subtitle format. Each subtitle block consists of an index, a time range (start and end), and the subtitle text.
-- **VTT (WebVTT)**: A similar format to SRT but with different formatting conventions. You can extend the `SubParser` class to support VTT or other formats if needed.
-
 ## License
 
-This package is open source and available under the [MIT License](LICENSE).
-
----
-
-### Key Sections in the README:
-
-1. **Installation**: Provides the necessary steps to add your package to a Flutter/Dart project.
-2. **Usage**: Details how to use the `SubParser` and `SubModel` to parse subtitles.
-3. **Code Example**: A real example of how to integrate the package, including reading subtitle files and printing parsed data.
-4. **License**: Links to the open-source license, typically the MIT License.
-
-You can customize this README as needed based on your package's unique features or usage instructions.
+This package is open source and available under the MIT License.
