@@ -16,7 +16,7 @@ Add `sub` as a dependency in your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  sub: ^1.1.0
+  sub: ^1.1.1
 ```
 
 Then run:
