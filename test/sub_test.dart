@@ -21,8 +21,7 @@ void main() {
       await file.writeAsString(srtContent);
 
       // Call the SubtitleParser to parse the file
-      final List<SubModel> subtitles =
-          await SubParser.parseSrtFile('test_data.srt');
+      final List<SubModel> subtitles = await Sub.parse('test_data.srt');
 
       // Verify the parsed data
       expect(subtitles, isNotEmpty);
@@ -42,8 +41,7 @@ void main() {
       final emptyFile = File('empty.srt');
       await emptyFile.writeAsString('');
 
-      final List<SubModel> subtitles =
-          await SubParser.parseSrtFile('empty.srt');
+      final List<SubModel> subtitles = await Sub.parse('empty.srt');
 
       expect(subtitles, isEmpty);
     });

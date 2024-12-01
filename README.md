@@ -78,7 +78,7 @@ void main() async {
 
   try {
     // Parse the subtitle file
-    List<SubModel> subtitles = await SubParser.parseSrtFile(filePath);
+    List<SubModel> subtitles = await SubParser.parse(filePath);
 
     // Print the parsed subtitles
     for (var subtitle in subtitles) {
@@ -95,7 +95,7 @@ void main() async {
 
 #### Parsing Logic
 
-- The `SubParser.parseSrtFile` method takes the file path of the subtitle file (SRT format) and returns a list of `SubModel` objects.
+- The `SubParser.parse` method takes the file path of the subtitle file (SRT format) and returns a list of `SubModel` objects.
 - The parser extracts each subtitle's ID, start time, end time, and text.
 - The `start` and `end` times are parsed into `Duration` objects, which can be used to synchronize subtitles with media.
 

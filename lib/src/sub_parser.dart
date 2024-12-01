@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:sub/src/sub_model.dart';
 
-class SubParser {
+class Sub {
   /// Parse a file in SRT format into a list of [SubModel]s.
   ///
   /// The file is expected to be in the format:
@@ -31,9 +31,9 @@ class SubParser {
   /// Example usage:
   ///
   /// ```dart
-  /// List<SubModel> subtitles = await SubParser.parseSrtFile('path_to_subtitle.srt');
+  /// List<SubModel> subtitles = await SubParser.parse('path_to_subtitle.srt');
   /// ```
-  static Future<List<SubModel>> parseSrtFile(String filePath) async {
+  static Future<List<SubModel>> parse(String filePath) async {
     final File file = File(filePath);
     final Stream<List<int>> inputStream = file.openRead();
     final List<SubModel> subtitles = [];
