@@ -35,6 +35,12 @@ class Sub {
   /// ```
   static Future<List<SubModel>> parse(String filePath) async {
     final File file = File(filePath);
+
+    if (!await file.exists()) {
+      print('File does not exist: $filePath');
+      return [];
+    }
+
     final Stream<List<int>> inputStream = file.openRead();
     final List<SubModel> subtitles = [];
     final Completer<void> completer = Completer<void>();
