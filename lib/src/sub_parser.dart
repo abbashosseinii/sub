@@ -1,133 +1,208 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
+import 'package:charset_converter/charset_converter.dart';
 import 'package:sub/src/sub_model.dart';
 
+/// A class for parsing SRT subtitle files into a list of [SubModel] instances.
+///
+/// This parser can handle SRT files encoded in various character encodings,
+/// making it flexible for different subtitle file formats.
+///
+/// Example usage:
+///
+/// ```dart
+/// List<SubModel> subtitles = await Sub.parse('path_to_subtitle.srt');
+/// ```
 class Sub {
-  /// Parse a file in SRT format into a list of [SubModel]s.
+  /// Parses an SRT file and returns a list of [SubModel] instances.
   ///
-  /// The file is expected to be in the format:
+  /// The method attempts to decode the file using a list of common encodings
+  /// until it succeeds. It reads the entire file content into memory and
+  /// processes it to extract subtitle entries.
   ///
-  ///     1
-  ///     00:00:01,000 --> 00:00:04,000
-  ///     Hello, welcome to the test!
+  /// [filePath] is the path to the SRT file to be parsed.
   ///
-  ///     2
-  ///     00:00:05,000 --> 00:00:08,000
-  ///     This is the second subtitle.
+  /// Returns a [Future] that completes with a list of [SubModel] instances
+  /// representing the subtitles in the file.
   ///
-  /// Where each block of text is separated by a blank line, and the first
-  /// line of each block is the subtitle ID, the second line is the timing
-  /// information in the format `HH:MM:SS,MMM --> HH:MM:SS,MMM`, and the
-  /// third line is the subtitle text.
-  ///
-  /// The file is read in a streaming fashion to avoid loading large files
-  /// into memory all at once, which improves performance for larger subtitle files.
-  /// The method returns a [Future] that completes when the entire file has been parsed.
-  /// The [Future] resolves to a [List] of [SubModel]s, which can then be used
-  /// for further processing, such as displaying the subtitles.
-  ///
-  /// Example usage:
-  ///
-  /// ```dart
-  /// List<SubModel> subtitles = await SubParser.parse('path_to_subtitle.srt');
-  /// ```
+  /// If the file does not exist or cannot be decoded with the provided
+  /// encodings, the method returns an empty list.
   static Future<List<SubModel>> parse(String filePath) async {
     final File file = File(filePath);
 
+    // Check if the file exists at the given path.
     if (!await file.exists()) {
       print('File does not exist: $filePath');
       return [];
     }
 
-    final Stream<List<int>> inputStream = file.openRead();
-    final List<SubModel> subtitles = [];
-    final Completer<void> completer = Completer<void>();
+    // Read the entire file content as bytes.
+    final bytes = await file.readAsBytes();
 
+    // Initialize an empty string to hold the decoded content.
+    String content = '';
+
+    // List of possible encodings to try decoding the file with.
+    List<String> possibleEncodings = [
+      'utf-8',
+      'windows-1252',
+      'iso-8859-1',
+      'shift_jis',
+      'gbk',
+      'utf-16',
+      'utf-16le',
+      'utf-16be',
+      'euc-kr',
+      'big5',
+      // Add other encodings as needed.
+    ];
+
+    // Flag to indicate whether the file has been successfully decoded.
+    bool decoded = false;
+
+    // Attempt to decode the file content using each encoding in the list.
+    for (String encoding in possibleEncodings) {
+      try {
+        // Decode the bytes into a string using the specified encoding.
+        content = await CharsetConverter.decode(encoding, bytes);
+        decoded = true;
+        print('File decoded using encoding: $encoding');
+        break; // Exit the loop upon successful decoding.
+      } catch (e) {
+        // If decoding fails, continue to the next encoding.
+        continue;
+      }
+    }
+
+    // If decoding failed with all provided encodings, return an empty list.
+    if (!decoded) {
+      print('Failed to decode the file with the provided encodings.');
+      return [];
+    }
+
+    // Initialize a list to hold the parsed subtitles.
+    final List<SubModel> subtitles = [];
+
+    // Split the content into lines, accounting for different newline characters.
+    final List<String> lines = content.split(RegExp(r'\r\n|\r|\n'));
+
+    // Variables to hold the current subtitle block data.
     int id = 0;
     String subtitleText = '';
     Duration? startTime;
     Duration? endTime;
 
-    inputStream.transform(Utf8Decoder()).listen(
-      (String chunk) {
-        final List<String> lines = chunk.split('\n');
-        for (var line in lines) {
-          if (line.isEmpty) continue;
+    int lineIndex = 0; // Index to track the current position in the lines list.
 
-          if (id == 0 || line.contains(RegExp(r'^\d+$'))) {
-            // New subtitle block, save previous one if exists
-            if (id != 0 && subtitleText.isNotEmpty) {
-              subtitles.add(SubModel(
-                id: id,
-                start: startTime!,
-                end: endTime!,
-                text: subtitleText.trim(),
-              ));
-            }
+    // Loop through the lines to parse subtitle blocks.
+    while (lineIndex < lines.length) {
+      final line = lines[lineIndex].trim();
 
-            // Initialize new subtitle block
-            id = int.parse(line);
-            subtitleText = '';
-            continue;
-          }
+      // Skip empty lines.
+      if (line.isEmpty) {
+        lineIndex++;
+        continue;
+      }
 
-          if (line.contains(RegExp(r'-->'))) {
-            // Extract start and end times from the subtitle line
-            final RegExp timePattern = RegExp(
-                r'(\d{2}):(\d{2}):(\d{2}),(\d{3}) --> (\d{2}):(\d{2}):(\d{2}),(\d{3})');
-            final match = timePattern.firstMatch(line);
-            if (match != null) {
-              final startHours = int.parse(match.group(1)!);
-              final startMinutes = int.parse(match.group(2)!);
-              final startSeconds = int.parse(match.group(3)!);
-              final startMilliseconds = int.parse(match.group(4)!);
-
-              final endHours = int.parse(match.group(5)!);
-              final endMinutes = int.parse(match.group(6)!);
-              final endSeconds = int.parse(match.group(7)!);
-              final endMilliseconds = int.parse(match.group(8)!);
-
-              startTime = Duration(
-                hours: startHours,
-                minutes: startMinutes,
-                seconds: startSeconds,
-                milliseconds: startMilliseconds,
-              );
-              endTime = Duration(
-                hours: endHours,
-                minutes: endMinutes,
-                seconds: endSeconds,
-                milliseconds: endMilliseconds,
-              );
-            }
-            continue;
-          }
-
-          // Collect subtitle text
-          subtitleText += line + '\n';
-        }
-      },
-      onDone: () {
-        if (subtitleText.isNotEmpty) {
-          // Add the last subtitle block to the list
+      // Check if the line is a subtitle ID (an integer).
+      if (RegExp(r'^\d+$').hasMatch(line)) {
+        // If there's an existing subtitle block, save it before starting a new one.
+        if (id != 0 &&
+            subtitleText.isNotEmpty &&
+            startTime != null &&
+            endTime != null) {
           subtitles.add(SubModel(
             id: id,
-            start: startTime!,
-            end: endTime!,
+            start: startTime,
+            end: endTime,
             text: subtitleText.trim(),
           ));
         }
-        completer.complete();
-      },
-      onError: (error) {
-        completer.completeError(error);
-      },
-    );
 
-    // Wait for the stream to complete and return the list of subtitles
-    await completer.future;
+        // Parse the subtitle ID.
+        id = int.parse(line);
+        subtitleText = ''; // Reset the subtitle text.
+        startTime = null; // Reset the start time.
+        endTime = null; // Reset the end time.
+        lineIndex++;
+
+        // Ensure there are more lines to read for the timing information.
+        if (lineIndex < lines.length) {
+          final timingLine = lines[lineIndex].trim();
+
+          // Regular expression to match the timing line.
+          final RegExp timePattern = RegExp(
+              r'(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*'
+              r'(\d{2}):(\d{2}):(\d{2}),(\d{3})');
+
+          final match = timePattern.firstMatch(timingLine);
+
+          // If the timing line matches the expected format, parse the times.
+          if (match != null) {
+            // Parse start time components.
+            final startHours = int.parse(match.group(1)!);
+            final startMinutes = int.parse(match.group(2)!);
+            final startSeconds = int.parse(match.group(3)!);
+            final startMilliseconds = int.parse(match.group(4)!);
+
+            // Parse end time components.
+            final endHours = int.parse(match.group(5)!);
+            final endMinutes = int.parse(match.group(6)!);
+            final endSeconds = int.parse(match.group(7)!);
+            final endMilliseconds = int.parse(match.group(8)!);
+
+            // Create Duration instances for start and end times.
+            startTime = Duration(
+              hours: startHours,
+              minutes: startMinutes,
+              seconds: startSeconds,
+              milliseconds: startMilliseconds,
+            );
+            endTime = Duration(
+              hours: endHours,
+              minutes: endMinutes,
+              seconds: endSeconds,
+              milliseconds: endMilliseconds,
+            );
+
+            lineIndex++; // Move to the next line to read subtitle text.
+          } else {
+            // If the timing line is invalid, log a message and skip to the next line.
+            print('Invalid timing line at line ${lineIndex + 1}');
+            lineIndex++;
+            continue;
+          }
+        } else {
+          // If there are no more lines, exit the loop.
+          break;
+        }
+
+        // Collect the subtitle text lines until an empty line or the end of the file.
+        while (lineIndex < lines.length && lines[lineIndex].trim().isNotEmpty) {
+          subtitleText += lines[lineIndex] + '\n';
+          lineIndex++;
+        }
+      } else {
+        // If the line doesn't match any expected format, move to the next line.
+        lineIndex++;
+      }
+    }
+
+    // Add the last subtitle block to the list if it exists and is valid.
+    if (id != 0 &&
+        subtitleText.isNotEmpty &&
+        startTime != null &&
+        endTime != null) {
+      subtitles.add(SubModel(
+        id: id,
+        start: startTime,
+        end: endTime,
+        text: subtitleText.trim(),
+      ));
+    }
+
+    // Return the list of parsed subtitles.
     return subtitles;
   }
 }
