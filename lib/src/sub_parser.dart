@@ -1,113 +1,106 @@
-import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
-
-import 'package:charset_converter/charset_converter.dart';
 import 'package:sub/src/sub_model.dart';
 
-/// A class for parsing SRT subtitle files into a list of [SubModel] instances.
+/// A powerful and flexible Dart library for parsing SRT subtitle files into structured data.
 ///
-/// This parser can handle SRT files encoded in various character encodings,
-/// making it flexible for different subtitle file formats.
+/// This package provides a simple API to extract subtitle information from SRT files,
+/// making it perfect for applications that need to process and display subtitles dynamically.
 ///
-/// Example usage:
+/// ### Key Features:
+/// - **Multi-Encoding Support**: Automatically handles various text encodings like UTF-8, Latin-1, and more.
+/// - **Easy Integration**: Minimal setup required for seamless integration.
+/// - **Customizable and Extensible**: Provides structured output via [SubModel] for further customization.
 ///
+/// ### Use Cases:
+/// - Video players with subtitles.
+/// - Processing subtitles for AI models or transcription tools.
+/// - Subtitle validation, editing, and conversion applications.
+///
+/// ### Example:
 /// ```dart
-/// List<SubModel> subtitles = await Sub.parse('path_to_subtitle.srt');
+/// import 'package:sub/sub.dart';
+///
+/// Future<void> main() async {
+///   List<SubModel> subtitles = await Sub.parse('assets/subtitles.srt');
+///   for (var subtitle in subtitles) {
+///     print('${subtitle.id}: ${subtitle.text} (${subtitle.start} - ${subtitle.end})');
+///   }
+/// }
 /// ```
+///
+/// Get started with `Sub` to make subtitle processing effortless!
 class Sub {
   /// Parses an SRT file and returns a list of [SubModel] instances.
   ///
-  /// The method attempts to decode the file using a list of common encodings
-  /// until it succeeds. It reads the entire file content into memory and
-  /// processes it to extract subtitle entries.
+  /// ### Parameters:
+  /// - [filePath]: The file path to the SRT subtitle file.
   ///
-  /// [filePath] is the path to the SRT file to be parsed.
+  /// ### Returns:
+  /// A [Future] that resolves to a list of [SubModel] objects, each representing
+  /// a subtitle block with its ID, start time, end time, and text.
   ///
-  /// Returns a [Future] that completes with a list of [SubModel] instances
-  /// representing the subtitles in the file.
-  ///
-  /// If the file does not exist or cannot be decoded with the provided
-  /// encodings, the method returns an empty list.
+  /// If the file is missing, empty, or cannot be decoded, an empty list is returned.
   static Future<List<SubModel>> parse(String filePath) async {
     final File file = File(filePath);
 
-    // Check if the file exists at the given path.
+    // Validate the file's existence
     if (!await file.exists()) {
       print('File does not exist: $filePath');
       return [];
     }
 
-    // Read the entire file content as bytes.
+    // Read the file content as bytes
     final bytes = await file.readAsBytes();
-
-    // Initialize an empty string to hold the decoded content.
     String content = '';
 
-    // List of possible encodings to try decoding the file with.
-    List<String> possibleEncodings = [
-      'utf-8',
-      'windows-1252',
-      'iso-8859-1',
-      'shift_jis',
-      'gbk',
-      'utf-16',
-      'utf-16le',
-      'utf-16be',
-      'euc-kr',
-      'big5',
-      // Add other encodings as needed.
+    // Encodings to try for decoding the file
+    final encodings = [
+      utf8,
+      latin1,
+      Encoding.getByName('iso-8859-1') ?? latin1,
+      Encoding.getByName('windows-1252') ?? latin1,
     ];
 
-    // Flag to indicate whether the file has been successfully decoded.
     bool decoded = false;
 
-    // Attempt to decode the file content using each encoding in the list.
-    for (String encoding in possibleEncodings) {
+    // Attempt decoding with various encodings
+    for (var encoding in encodings) {
       try {
-        // Decode the bytes into a string using the specified encoding.
-        content = await CharsetConverter.decode(encoding, bytes);
+        content = encoding.decode(bytes);
         decoded = true;
-        print('File decoded using encoding: $encoding');
-        break; // Exit the loop upon successful decoding.
+        print('File decoded using encoding: ${encoding.name}');
+        break;
       } catch (e) {
-        // If decoding fails, continue to the next encoding.
+        // Continue to next encoding if decoding fails
         continue;
       }
     }
 
-    // If decoding failed with all provided encodings, return an empty list.
     if (!decoded) {
       print('Failed to decode the file with the provided encodings.');
       return [];
     }
 
-    // Initialize a list to hold the parsed subtitles.
     final List<SubModel> subtitles = [];
-
-    // Split the content into lines, accounting for different newline characters.
     final List<String> lines = content.split(RegExp(r'\r\n|\r|\n'));
 
-    // Variables to hold the current subtitle block data.
     int id = 0;
     String subtitleText = '';
     Duration? startTime;
     Duration? endTime;
 
-    int lineIndex = 0; // Index to track the current position in the lines list.
+    int lineIndex = 0;
 
-    // Loop through the lines to parse subtitle blocks.
     while (lineIndex < lines.length) {
       final line = lines[lineIndex].trim();
 
-      // Skip empty lines.
       if (line.isEmpty) {
         lineIndex++;
         continue;
       }
 
-      // Check if the line is a subtitle ID (an integer).
       if (RegExp(r'^\d+$').hasMatch(line)) {
-        // If there's an existing subtitle block, save it before starting a new one.
         if (id != 0 &&
             subtitleText.isNotEmpty &&
             startTime != null &&
@@ -120,76 +113,54 @@ class Sub {
           ));
         }
 
-        // Parse the subtitle ID.
         id = int.parse(line);
-        subtitleText = ''; // Reset the subtitle text.
-        startTime = null; // Reset the start time.
-        endTime = null; // Reset the end time.
+        subtitleText = '';
+        startTime = null;
+        endTime = null;
         lineIndex++;
 
-        // Ensure there are more lines to read for the timing information.
         if (lineIndex < lines.length) {
           final timingLine = lines[lineIndex].trim();
-
-          // Regular expression to match the timing line.
           final RegExp timePattern =
               RegExp(r'(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*'
                   r'(\d{2}):(\d{2}):(\d{2}),(\d{3})');
 
           final match = timePattern.firstMatch(timingLine);
 
-          // If the timing line matches the expected format, parse the times.
           if (match != null) {
-            // Parse start time components.
-            final startHours = int.parse(match.group(1)!);
-            final startMinutes = int.parse(match.group(2)!);
-            final startSeconds = int.parse(match.group(3)!);
-            final startMilliseconds = int.parse(match.group(4)!);
-
-            // Parse end time components.
-            final endHours = int.parse(match.group(5)!);
-            final endMinutes = int.parse(match.group(6)!);
-            final endSeconds = int.parse(match.group(7)!);
-            final endMilliseconds = int.parse(match.group(8)!);
-
-            // Create Duration instances for start and end times.
-            startTime = Duration(
-              hours: startHours,
-              minutes: startMinutes,
-              seconds: startSeconds,
-              milliseconds: startMilliseconds,
-            );
-            endTime = Duration(
-              hours: endHours,
-              minutes: endMinutes,
-              seconds: endSeconds,
-              milliseconds: endMilliseconds,
+            startTime = _parseTime(
+              match.group(1)!,
+              match.group(2)!,
+              match.group(3)!,
+              match.group(4)!,
             );
 
-            lineIndex++; // Move to the next line to read subtitle text.
+            endTime = _parseTime(
+              match.group(5)!,
+              match.group(6)!,
+              match.group(7)!,
+              match.group(8)!,
+            );
+
+            lineIndex++;
           } else {
-            // If the timing line is invalid, log a message and skip to the next line.
             print('Invalid timing line at line ${lineIndex + 1}');
             lineIndex++;
             continue;
           }
         } else {
-          // If there are no more lines, exit the loop.
           break;
         }
 
-        // Collect the subtitle text lines until an empty line or the end of the file.
         while (lineIndex < lines.length && lines[lineIndex].trim().isNotEmpty) {
           subtitleText += lines[lineIndex] + '\n';
           lineIndex++;
         }
       } else {
-        // If the line doesn't match any expected format, move to the next line.
         lineIndex++;
       }
     }
 
-    // Add the last subtitle block to the list if it exists and is valid.
     if (id != 0 &&
         subtitleText.isNotEmpty &&
         startTime != null &&
@@ -202,7 +173,23 @@ class Sub {
       ));
     }
 
-    // Return the list of parsed subtitles.
     return subtitles;
+  }
+
+  /// Parses a timing line into a [Duration].
+  ///
+  /// ### Parameters:
+  /// - [hours], [minutes], [seconds], [milliseconds]: String representations of time components.
+  ///
+  /// ### Returns:
+  /// A [Duration] instance representing the parsed time.
+  static Duration _parseTime(
+      String hours, String minutes, String seconds, String milliseconds) {
+    return Duration(
+      hours: int.parse(hours),
+      minutes: int.parse(minutes),
+      seconds: int.parse(seconds),
+      milliseconds: int.parse(milliseconds),
+    );
   }
 }
