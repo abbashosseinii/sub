@@ -1,7 +1,7 @@
 name: sub
 description: |
   A lightweight Dart library to parse, extract, and manipulate subtitle files. Perfect for media apps, video players, and subtitle management tools.
-version: 1.2.0
+version: 1.2.1
 license: MIT
 repository: https://github.com/abbashosseinii/sub
 
@@ -11,7 +11,6 @@ environment:
 # Add regular dependencies here.
 dependencies:
   # path: ^1.8.0
-  charset_converter: ^2.3.0
 
 dev_dependencies:
   lints: ^4.0.0
