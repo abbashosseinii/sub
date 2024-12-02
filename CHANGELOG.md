@@ -1,3 +1,17 @@
+## 1.2.1
+
+#### Added
+
+- **Multi-Encoding Support**: Automatically handles various text encodings like UTF-8 and Latin-1 to ensure compatibility with different SRT files.
+
+#### Changed
+
+- **Removed Flutter Dependencies**: Refactored the package to be a pure Dart package, eliminating any Flutter-specific code to broaden usability across Dart applications.
+
+#### Fixed
+
+- **Parsing Accuracy**: Improved the parsing logic to handle edge cases and ensure accurate extraction of subtitle timings and text.
+
 ## 1.2.0
 
 #### Added

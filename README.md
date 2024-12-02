@@ -1,138 +1,97 @@
-# Sub Parser
+# Sub
 
-A Dart package for parsing SRT (SubRip Subtitle) files into a list of subtitle models, supporting multiple character encodings. This parser is designed to handle SRT files encoded in various formats, making it versatile for different languages and regions.
+A powerful and flexible Dart library for parsing SRT subtitle files into structured data.
 
-## Features
+This package provides a simple API to extract subtitle information from SRT files, making it perfect for applications that need to process and display subtitles dynamically.
 
-- **Multi-Encoding Support**: Automatically detects and decodes SRT files with different character encodings such as UTF-8, Windows-1252, ISO-8859-1, Shift_JIS, GBK, UTF-16, and more.
-- **Accurate Parsing**: Parses subtitle IDs, timing information, and text accurately.
-- **Easy to Use**: Simple API to parse subtitle files with minimal code.
-- **Well Documented**: Includes detailed comments and documentation for easy understanding and maintenance.
+## 📖 Table of Contents
 
-## Installation
+- [Key Features](#key-features)
+- [Use Cases](#use-cases)
+- [Installation](#installation)
+- [Usage](#usage)
+- [API Reference](#api-reference)
+- [License](#license)
+- [Contributing](#contributing)
+- [Contact](#contact)
 
-Add the package to your `pubspec.yaml` file:
+## 🚀 Key Features
+
+- **Multi-Encoding Support**: Automatically handles various text encodings like UTF-8, Latin-1, and more.
+- **Easy Integration**: Minimal setup required for seamless integration.
+- **Customizable and Extensible**: Provides structured output via `SubModel` for further customization.
+
+## 🎯 Use Cases
+
+- Video players with subtitles.
+- Processing subtitles for AI models or transcription tools.
+- Subtitle validation, editing, and conversion applications.
+
+## 📦 Installation
+
+Add the following dependency to your `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  sub_parser: ^1.2.0
+  sub: ^1.2.1
 ```
 
 Then run:
 
-```bash
+```shell
 dart pub get
 ```
 
-## Usage
+## 📝 Usage
 
-Import the package in your Dart file:
-
-```dart
-import 'package:sub_parser/sub_parser.dart';
-```
-
-Use the `Sub` class to parse an SRT file:
+Here's a simple example of how to use the `Sub` package to parse an SRT file:
 
 ```dart
-void main() async {
-  // Replace 'path_to_subtitle.srt' with the path to your SRT file.
-  List<SubModel> subtitles = await Sub.parse('path_to_subtitle.srt');
+import 'package:sub/sub.dart';
 
-  // Iterate over the subtitles and print their details.
+Future<void> main() async {
+  List<SubModel> subtitles = await Sub.parse('assets/subtitles.srt');
   for (var subtitle in subtitles) {
-    print('ID: ${subtitle.id}');
-    print('Start: ${subtitle.start}');
-    print('End: ${subtitle.end}');
-    print('Text: ${subtitle.text}');
-    print('---');
+    print('${subtitle.id}: ${subtitle.text} (${subtitle.start} - ${subtitle.end})');
   }
 }
 ```
 
-## API Reference
+## 📚 API Reference
 
 ### `Sub.parse(String filePath)`
 
-Parses an SRT file and returns a `Future<List<SubModel>>` representing the subtitles.
+Parses an SRT file and returns a list of `SubModel` instances.
 
-- **Parameters**:
-  - `filePath` (`String`): The path to the SRT file to be parsed.
+**Parameters:**
 
-- **Returns**: A `Future` that completes with a list of `SubModel` instances.
+- `filePath`: The file path to the SRT subtitle file.
+
+**Returns:**
+
+A `Future` that resolves to a list of `SubModel` objects, each representing a subtitle block with its ID, start time, end time, and text.
+
+If the file is missing, empty, or cannot be decoded, an empty list is returned.
 
 ### `SubModel`
 
-A model representing a single subtitle entry.
+Represents a single subtitle block with the following properties:
 
-- **Fields**:
-  - `id` (`int`): The subtitle ID.
-  - `start` (`Duration`): The start time of the subtitle.
-  - `end` (`Duration`): The end time of the subtitle.
-  - `text` (`String`): The subtitle text.
+- `int id`: The sequence number of the subtitle.
+- `Duration start`: The start time of the subtitle.
+- `Duration end`: The end time of the subtitle.
+- `String text`: The subtitle text.
 
-## How It Works
+## 🛡️ License
 
-The parser reads the entire SRT file as bytes and attempts to decode it using a list of common encodings. It processes the decoded content to extract subtitle blocks, including their IDs, timing information, and text.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-### Supported Encodings
+## 🤝 Contributing
 
-- UTF-8
-- Windows-1252
-- ISO-8859-1
-- Shift_JIS
-- GBK
-- UTF-16
-- UTF-16LE
-- UTF-16BE
-- EUC-KR
-- Big5
-- *(Add other encodings as needed)*
+Contributions are welcome! Please open an issue or submit a pull request for any bugs, improvements, or features.
 
-## Dependencies
+## 📬 Contact
 
-- **[charset_converter](https://pub.dev/packages/charset_converter)**: Used for decoding file content with various character encodings.
+If you have any questions or suggestions, feel free to reach out:
 
-## Example
-
-An example of parsing a subtitle file and displaying the subtitles:
-
-```dart
-import 'package:sub_parser/sub_parser.dart';
-
-void main() async {
-  List<SubModel> subtitles = await Sub.parse('example.srt');
-
-  for (var subtitle in subtitles) {
-    print('Subtitle ${subtitle.id}:');
-    print('From ${subtitle.start} to ${subtitle.end}');
-    print(subtitle.text);
-    print('');
-  }
-}
-```
-
-## Error Handling
-
-- **File Not Found**: If the specified file does not exist, the parser prints a message and returns an empty list.
-- **Decoding Failure**: If the parser fails to decode the file with the provided encodings, it prints a message and returns an empty list.
-- **Invalid Timing Lines**: If a timing line does not match the expected format, the parser logs a message and skips that subtitle block.
-
-## Contributing
-
-Contributions are welcome! If you'd like to improve this package, please:
-
-1. Fork the repository.
-2. Create a new branch for your feature or bug fix.
-3. Write tests to cover your changes.
-4. Submit a pull request.
-
-Please ensure your code adheres to the existing style conventions and passes all tests.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-For any questions or suggestions, please open an issue on the repository or contact the maintainer at [abbashosseini7698@gmail.com](mailto:abbashosseini7698@gmail.com).
+- **Email**: [abbashosseini7698@gmail.com](mailto:abbashosseini7698@gmail.com)
