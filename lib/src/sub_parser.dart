@@ -132,9 +132,9 @@ class Sub {
           final timingLine = lines[lineIndex].trim();
 
           // Regular expression to match the timing line.
-          final RegExp timePattern = RegExp(
-              r'(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*'
-              r'(\d{2}):(\d{2}):(\d{2}),(\d{3})');
+          final RegExp timePattern =
+              RegExp(r'(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*'
+                  r'(\d{2}):(\d{2}):(\d{2}),(\d{3})');
 
           final match = timePattern.firstMatch(timingLine);
 
